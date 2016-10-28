@@ -80,8 +80,8 @@ function newWindow() {
                 });
               } catch(err) {
                 // tell the user that something went wrong
-                contents.send("log", err);
-                sendMsg("!sys", 'error: ' + err.toString(), "[System]");
+                contents.send('log', err);
+                sendMsg('!sys', `error: ${err.toString()}`, '[System]');
               }
 
               /*
@@ -89,10 +89,10 @@ function newWindow() {
               */
               {
                 // on network error (fail to connect, etc.
-                client.addListener("netError", function(error) {
-                  if(error.code == "ENOTFOUND"){
+                client.addListener('netError', function(error) {
+                  if(error.code == 'ENOTFOUND'){
                     // couldn't connect to server, so tell the user.
-                    sendMsg("!sys", "Connection failed: Could not find host \"" + error.hostname + "\"  \nPlease check that the address is correct and you have a working internet connection, then try restarting the client.", "[ERROR]");
+                    sendMsg('!sys', "Connection failed: Could not find host \"" + error.hostname + "\"  \nPlease check that the address is correct and you have a working internet connection, then try restarting the client.", "[ERROR]");
                   } else {
                     // otherwise, send a fairly generic disconnect error :)
                     contents.send("server_disconnect", error);
@@ -132,72 +132,72 @@ function newWindow() {
                     });
 
                     ipcMain.on("client_about", function(event){
-                        ext = new BrowserWindow({width:900, height:600, icon: ico});
-                        extCon = ext.webContents;
+                      ext = new BrowserWindow({width:900, height:600, icon: ico});
+                      extCon = ext.webContents;
 
-                        ext.loadURL("file://" + __dirname + "/app/about.html");
+                      ext.loadURL(`file://${__dirname}/app/about.html`);
 
-                        extCon.on('new-window', function(e, url) {
-                            e.preventDefault();
-                            shell.openExternal(url);
-                        });
+                      extCon.on('new-window', function(e, url) {
+                        e.preventDefault();
+                        shell.openExternal(url);
+                      });
 
-                        ext.on("closed", function(){
-                            about = null;
-                        });
+                      ext.on('closed', function(){
+                        about = null;
+                      });
                     });
-                    ipcMain.on("client_help", function(event){
-                        ext = new BrowserWindow({width:900, height:600, icon: ico});
-                        extCon = ext.webContents;
+                    ipcMain.on('client_help', function(event){
+                      ext = new BrowserWindow({width:900, height:600, icon: ico});
+                      extCon = ext.webContents;
 
-                        ext.loadURL("file://" + __dirname + "/app/help/index.html");
+                      ext.loadURL(`file://${__dirname}/app/help/index.html`);
 
-                        extCon.on('new-window', function(e, url) {
-                            e.preventDefault();
-                            shell.openExternal(url);
-                        });
+                      extCon.on('new-window', function(e, url) {
+                        e.preventDefault();
+                        shell.openExternal(url);
+                      });
 
-                        ext.on("closed", function(){
-                            about = null;
-                        });
+                      ext.on('closed', function() {
+                        about = null;
+                      });
                     });
 
-                    ipcMain.on("channel_join", function(event, channel){
-                        client.join(channel);
+                    ipcMain.on('channel_join', function(event, channel){
+                      client.join(channel);
                     });
-                    ipcMain.on("channel_part", function(event, channel){
-                        if(channel.indexOf("#") == 0){
-                            client.part(channel);
+                    ipcMain.on('channel_part', function(event, channel){
+                      if(channel.indexOf('#') == 0){
+                        client.part(channel);
+                      }
+                      connDat.channels.remove(channel);
+                      // convert it to a JSON array
+                      var jsonSettings = JSON.stringify(connDat, null, 4);
+                      // write it to a file, to persist for next time
+                      fs.writeFile(`servers/${connDat.server.address}.json`, jsonSettings, 'utf8', function(err) {
+                        if(err) {
+                          console.log('couldn\'t write settings to json file: ', err);
+                        } else {
+                          console.log(`settings saved as json: ${connDat.server.address}.json`);
                         }
-                        connDat.channels.remove(channel);
-                        // convert it to a JSON array
-                        var jsonSettings = JSON.stringify(connDat, null, 4);
-                        // write it to a file, to persist for next time
-                        fs.writeFile("servers/" + connDat.server.address + '.json', jsonSettings, 'utf8', function(err) {
-                            if(err) {
-                                console.log("couldn't write settings to json file: ", err);
-                            } else {
-                                console.log("settings saved as json: " + connDat.server.address + ".json");
-                            }
-                        });
+                      });
                     });
-                    ipcMain.on("nick_change", function(event, newnick){
-                        client.send("NICK", newnick);
+                    ipcMain.on('nick_change', function(event, newnick){
+                      client.send('NICK', newnick);
                     });
 
                     ipcMain.on("user_whois", function(event, whois){
-                        client.send("WHOIS", whois);
+                      client.send('WHOIS', whois);
                     });
 
-                    ipcMain.on("message_send", function(event, channel, message){
-                        // if message starts with ":", run JS code.
-                        if(message.charAt(0) == ":"){
-                            message = message.substring(1);
-                            eval(message);
-                        }else if(channel != "!sys"){
-                            client.say(channel, message);
-                            sendMsg(channel, message, client.nick);
-                        }
+                    ipcMain.on('message_send', function(event, channel, message) {
+                      // if message starts with ":", run JS code.
+                      if(message.charAt(0) == ':') {
+                        message = message.substring(1);
+                        eval(message);
+                      } else if(channel != '!sys') {
+                        client.say(channel, message);
+                        sendMsg(channel, message, client.nick);
+                      }
                     });
                 }
 
