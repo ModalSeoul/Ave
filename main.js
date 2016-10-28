@@ -29,85 +29,84 @@ let client;
 
 // extend the string prototype to give us a bit more flexibility
 String.prototype.replaceAll = function(search, replacement) {
-    var target = this;
-    return target.replace(new RegExp(search, 'g'), replacement);
+  var target = this;
+  return target.replace(new RegExp(search, 'g'), replacement);
 };
 
 Array.prototype.remove = function() {
-    var what, a = arguments, L = a.length, ax;
-    while (L && this.length) {
-        what = a[--L];
-        while ((ax = this.indexOf(what)) !== -1) {
-            this.splice(ax, 1);
-        }
+  var what, a = arguments, L = a.length, ax;
+  while (L && this.length) {
+    what = a[--L];
+    while ((ax = this.indexOf(what)) !== -1) {
+      this.splice(ax, 1);
     }
-    return this;
+  }
+  return this;
 };
 
-var ico = __dirname + "/app/res/img/icon.ico";
+var ico = __dirname + '/app/res/img/icon.ico';
 
-function newWindow(){
+function newWindow() {
     win = new BrowserWindow({width: 900, height: 700, icon: ico});
     contents = win.webContents;
 
-    win.loadURL("file://" + __dirname + "/app/connect.html");
+    win.loadURL(`file://${__dirname}/app/connect.html`);
 
-    contents.on("did-finish-load", function(){
-        // handle when we get the connection data
-        ipcMain.on("server_connect", function(event, connDat){
-            win.loadURL("file://" + __dirname + "/app/client.html");
+    contents.on('did-finish-load', function() {
+      // handle when we get the connection data
+      ipcMain.on('server_connect', function(event, connDat){
+        win.loadURL(`file://${__dirname}/app/client.html`);
+          contents.on('new-window', function(e, url) {
+            e.preventDefault();
+            shell.openExternal(url);
+          });
 
-            contents.on('new-window', function(e, url) {
-                e.preventDefault();
-                shell.openExternal(url);
-            });
+            contents.on(`did-finish-load`, function(){
+              contents.send('set_logging', connDat.messages.log);
+              contents.send('set_server', `${connDat.server.address}(${connDat.server.port})`);
+              try {
+                // try to create IRC client object
+                client = new irc.Client(connDat.server.address, connDat.user.nickname, {
+                  port: connDat.server.port,
+                  showErrors: true,
+                  autoConnect: false,
+                  encoding: connDat.encoding,
+                  userName: connDat.user.username,
+                  realName: connDat.user.realname.toString(),
+                  retryCount: connDat.retry.count,
+                  retryDelay: connDat.retry.delay,
+                  stripColours: connDat.messages.stripForm,
+                  floodProtection: connDat.floodProtect
+                });
+              } catch(err) {
+                // tell the user that something went wrong
+                contents.send("log", err);
+                sendMsg("!sys", 'error: ' + err.toString(), "[System]");
+              }
 
-            contents.on("did-finish-load", function(){
-                contents.send("set_logging", connDat.messages.log);
-                contents.send("set_server", connDat.server.address + " (" + connDat.server.port + ")");
-                try {
-                    // try create IRC client object
-                    client = new irc.Client(connDat.server.address, connDat.user.nickname, {
-                        port: connDat.server.port,
-                        showErrors: true,
-                        autoConnect: false,
-                        encoding: connDat.encoding,
-                        userName: connDat.user.username,
-                        realName: connDat.user.realname.toString(),
-                        retryCount: connDat.retry.count,
-                        retryDelay: connDat.retry.delay,
-                        stripColours: connDat.messages.stripForm,
-                        floodProtection: connDat.floodProtect
-                     });
-                }catch(err){
-                    // tell the user that something went wrong
-                    contents.send("log", err);
-                    sendMsg("!sys", 'error: ' + err.toString(), "[System]");
-                }
-
-                /*
-                     IRC ERROR HANDLERS
-                */
-                {
-                    // on network error (fail to connect, etc.
-                    client.addListener("netError", function(error){
-                        if(error.code == "ENOTFOUND"){
-                            // couldn't connect to server, so tell the user.
-                            sendMsg("!sys", "Connection failed: Could not find host \"" + error.hostname + "\"  \nPlease check that the address is correct and you have a working internet connection, then try restarting the client.", "[ERROR]");
-                        }else{
-                            // otherwise, send a fairly generic disconnect error :)
-                            contents.send("server_disconnect", error);
-                        }
-                        // log the error details for debugging.
-                        contents.send("log", error);
-                    });
-                    // on standard IRC error from server
-                    client.addListener('error', function(message) {
-                        // send the parsed data from the server (which kindly provides human-readable summaries :D)
-                        sendMsg(message.args[1], "error: " + message.args[2], "[ERROR]");
-                        // log it anyway though, because data's always helpful.
-                        contents.send("log", message);
-                    });
+              /*
+                   IRC ERROR HANDLERS
+              */
+              {
+                // on network error (fail to connect, etc.
+                client.addListener("netError", function(error) {
+                  if(error.code == "ENOTFOUND"){
+                    // couldn't connect to server, so tell the user.
+                    sendMsg("!sys", "Connection failed: Could not find host \"" + error.hostname + "\"  \nPlease check that the address is correct and you have a working internet connection, then try restarting the client.", "[ERROR]");
+                  } else {
+                    // otherwise, send a fairly generic disconnect error :)
+                    contents.send("server_disconnect", error);
+                  }
+                  // log the error details for debugging.
+                  contents.send("log", error);
+                  });
+                  // on standard IRC error from server
+                  client.addListener('error', function(message) {
+                    // send the parsed data from the server (which kindly provides human-readable summaries :D)
+                    sendMsg(message.args[1], "error: " + message.args[2], "[ERROR]");
+                    // log it anyway though, because data's always helpful.
+                    contents.send("log", message);
+                  });
                 }
 
                 sendMsg("!sys", "Connecting to IRC server...", "[System]");
