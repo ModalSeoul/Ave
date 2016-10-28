@@ -16,9 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-const {app, BrowserWindow, Menu, ipcMain, shell} = require("electron");
-const irc = require("irc");
-const fs = require("fs");
+const {app, BrowserWindow, Menu, ipcMain, shell} = require('electron');
+const irc = require('irc');
+const fs = require('fs');
 
 // prevent JS garbage collector killing the window.
 let win;
@@ -295,29 +295,30 @@ function newWindow(){
                         console.log(message);
                     }else{
                         if(by != undefined){
-                            sendMsg(channel, by + " set the " + mode + " mode on " + channel + "/" + argument + ".", "[System]");
+                            sendMsg(channel, (`${by} set the ${mode} mode\
+                              on ${channel}/${argument}.`), '[System]');
                         }
                     }
                 });
-                client.addListener("-mode", function(channel, by, mode, argument, message){
-                    if(mode == "o"){
+                client.addListener("-mode", function(channel, by, mode, argument, message) {
+                    if (mode == "o") {
                         sendMsg(channel, by + " stripped " + argument + " of operator perks.", "[System]");
                         contents.send("user_op_remove", channel, argument);
-                    }else if(mode == "v"){
+                    } else if (mode == "v") {
                         sendMsg(channel, by + " stripped voice from " + argument + ".", "[System]");
-                    }else if(mode == "b"){
+                    } else if (mode == "b") {
                         sendMsg(channel, by + " unbanned " + argument + ".", "[System]");
                         console.log(message);
-                    }else{
-                        if(by != undefined){
+                    } else {
+                        if(by != undefined) {
                             sendMsg(channel, by + " removed the " + mode + " mode on " + channel + "/" + argument + ".", "[System]");
                         }
                     }
                 });
-                client.addListener("part", function(channel, nick, reason, message){
-                    if(nick != client.nick){
+                client.addListener("part", function(channel, nick, reason, message) {
+                    if(nick != client.nick) {
                         contents.send("user_remove", channel, nick);
-                        sendMsg(channel, nick + " has left the channel (" + reason + ").", "[System]");
+                        sendMsg(channel, `${nick} has left the channel (${reason})`, '[System]');
                         if(nick == client.nick && connDat.channels.indexOf(channel) != -1){
                             connDat.channels.remove(channel);
                             // convert it to a JSON array
@@ -327,13 +328,13 @@ function newWindow(){
                                 if(err) {
                                     console.log("couldn't write settings to json file: ", err);
                                 } else {
-                                    console.log("settings saved as json: " + connDat.server.address + ".json");
+                                    console.log(`settings saved as json: ${connDat.server.address}.json`);
                                 }
                             });
                         }
                     }
                 });
-                client.addListener("kick", function(channel, nick, by, reason, message){
+                client.addListener("kick", function(channel, nick, by, reason, message) {
                     contents.send("user_remove", channel, nick);
                     sendMsg(channel, nick + " was kicked from the channel by " + by + " (" + reason + ").", "[System]");
                     if(nick == client.nick && connDat.channels.indexOf(channel) != -1){
@@ -345,16 +346,16 @@ function newWindow(){
                             if(err) {
                                 console.log("couldn't write settings to json file: ", err);
                             } else {
-                                console.log("settings saved as json: " + connDat.server.address + ".json");
+                                console.log(`settings saved as json: ${connDat.server.address}.json`);
                             }
                         });
                     }
                 });
-                client.addListener("quit", function(nick, reason, channels, message){
+                client.addListener("quit", function(nick, reason, channels, message) {
                     contents.send("user_quit", nick, channels, reason);
                 });
                 client.addListener("kill", function(nick, reason, channels, message){
-                    contents.send("user_quit", nick, channels, "Kicked from Server (" + reason + ")");
+                    contents.send("user_quit", nick, channels, `Kicked from Server (${reason})`);
                 });
 
                 client.addListener("motd", function(motd){
@@ -390,11 +391,11 @@ function newWindow(){
 
     });
 
-    win.on("closed", function(){
-        try{
+    win.on("closed", function() {
+        try {
             // kill the connection
             client.disconnect("Client quit.");
-        }catch(e){
+        } catch(e) {
             // don't do anything; the user probably left on the connection screen.
         }
         win = null;
